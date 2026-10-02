@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Crosshair, Maximize2 } from 'lucide-react';
+import { getRoadRouteGeometry } from '../services/roadRouting.js';
 
 const createShuttleIcon = (shuttle, isSelected) => {
   const accent = shuttle.accentColor || '#06b6d4';
@@ -114,10 +115,27 @@ export default function MapView({
 
   const activeRoute = routes.find((route) => route.id === selectedShuttle?.routeId);
   const stopById = useMemo(() => new Map(campusStops.map((stop) => [stop.id, stop])), [campusStops]);
-  const displayedPolyline = (activeRoute?.stopIds || [])
+  const activeRouteStops = useMemo(() => (activeRoute?.stopIds || [])
     .map((stopId) => stopById.get(stopId))
-    .filter((stop) => stop && Number.isFinite(stop.latitude) && Number.isFinite(stop.longitude))
-    .map((stop) => [stop.latitude, stop.longitude]);
+    .filter((stop) => stop && Number.isFinite(Number(stop.lat)) && Number.isFinite(Number(stop.lng))), [activeRoute, stopById]);
+  const routeGeometryKey = activeRoute
+    ? `${activeRoute.id}|${activeRouteStops.map((stop) => `${stop.id}:${stop.lat},${stop.lng}`).join('|')}`
+    : '';
+  const [routePath, setRoutePath] = useState({ key: '', segments: [] });
+
+  useEffect(() => {
+    if (!routeGeometryKey || activeRouteStops.length < 2) return undefined;
+
+    let cancelled = false;
+    getRoadRouteGeometry(activeRouteStops).then(({ segments }) => {
+      if (!cancelled) setRoutePath({ key: routeGeometryKey, segments });
+    });
+    return () => { cancelled = true; };
+  }, [routeGeometryKey, activeRouteStops]);
+
+  const displayedPolyline = routePath.key === routeGeometryKey
+    ? routePath.segments.flatMap((segment, index) => index === 0 ? segment : segment.slice(1))
+    : [];
   const validShuttles = shuttles.filter((shuttle) => Number.isFinite(shuttle.latitude) && Number.isFinite(shuttle.longitude));
 
   const handleResetView = () => {

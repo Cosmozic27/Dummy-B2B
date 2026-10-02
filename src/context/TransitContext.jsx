@@ -6,8 +6,10 @@ import {
 import {
   advanceVehicleAlongRoute,
   createTripStartPatch,
+  getRouteStops,
   SIMULATION_TICK_MS,
 } from '../services/transitSimulation.js';
+import { getRoadRouteGeometry } from '../services/roadRouting.js';
 import { TransitContext } from './transitContext.js';
 
 const REQUIRED_COLLECTIONS = ['vehicles', 'routes', 'stops'];
@@ -29,6 +31,7 @@ export function TransitProvider({ children }) {
   const routesRef = useRef([]);
   const stopsRef = useRef([]);
   const inFlightRef = useRef(new Set());
+  const roadSegmentsRef = useRef(new Map());
 
   useEffect(() => {
     vehiclesRef.current = vehicles;
@@ -85,7 +88,13 @@ export function TransitProvider({ children }) {
         }
 
         const route = routesRef.current.find((item) => item.id === vehicle.routeId);
-        const movement = advanceVehicleAlongRoute(vehicle, route, stopsRef.current);
+        const movement = advanceVehicleAlongRoute(
+          vehicle,
+          route,
+          stopsRef.current,
+          SIMULATION_TICK_MS,
+          roadSegmentsRef.current.get(vehicleId),
+        );
         if (!movement) {
           setError(`Movement stopped for ${vehicle.name || vehicle.id}: its route or coordinates are unavailable.`);
           setSimulationOwners((current) => withoutId(current, vehicleId));
@@ -114,7 +123,18 @@ export function TransitProvider({ children }) {
     if (Number(vehicle.speed) > 0) throw new Error('This vehicle is already moving.');
 
     const patch = createTripStartPatch(route, stopsRef.current, speedKmh);
-    await updateVehicle(vehicleId, patch);
+    const roadGeometry = await getRoadRouteGeometry(getRouteStops(route, stopsRef.current));
+    const firstRoadPoint = roadGeometry.segments[0]?.[0];
+    if (firstRoadPoint) {
+      [patch.lat, patch.lng] = firstRoadPoint;
+    }
+    roadSegmentsRef.current.set(vehicleId, roadGeometry.segments);
+    try {
+      await updateVehicle(vehicleId, patch);
+    } catch (writeError) {
+      roadSegmentsRef.current.delete(vehicleId);
+      throw writeError;
+    }
     vehiclesRef.current = vehiclesRef.current.map((item) => item.id === vehicleId ? { ...item, ...patch } : item);
     setSimulationOwners((current) => new Set(current).add(vehicleId));
     setError('');
