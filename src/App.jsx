@@ -45,6 +45,7 @@ function DashboardApp() {
   } = useTransit();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isOperatorUser, setIsOperatorUser] = useState(false);
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [currentView, setCurrentView] = useState('dashboard');
   const [currentMode, setCurrentMode] = useState('student');
@@ -71,6 +72,7 @@ function DashboardApp() {
   const lastUpdated = formatLastUpdated(clockNow, lastUpdatedAt);
 
   const handleLoginSuccess = (role) => {
+    setIsOperatorUser(role === 'operator');
     setCurrentMode(role === 'operator' ? 'operator' : 'student');
     setCurrentView('dashboard');
     setActiveTab('Dashboard');
@@ -124,6 +126,7 @@ function DashboardApp() {
   };
 
   const handleToggleMode = (targetMode) => {
+    if (targetMode === 'operator' && !isOperatorUser) return;
     setCurrentMode(targetMode);
     if (targetMode === 'student') setCurrentView('dashboard');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -151,7 +154,7 @@ function DashboardApp() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         currentMode={currentMode}
-        onToggleMode={handleToggleMode}
+        onToggleMode={isOperatorUser ? handleToggleMode : undefined}
       />
 
       {error && (

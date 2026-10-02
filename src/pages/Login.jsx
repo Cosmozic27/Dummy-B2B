@@ -20,6 +20,8 @@ import {
  * Login Component / Page
  * Polished mobility-tech authentication screen supporting Student and Operator roles
  */
+const OPERATOR_PASSCODE = 'shuttle2026';
+
 export default function Login({
   onLoginSuccess,
   onCancel,
@@ -31,6 +33,7 @@ export default function Login({
   const [selectedRole, setSelectedRole] = useState(initialRole); // 'student' | 'operator'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passcode, setPasscode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -59,6 +62,10 @@ export default function Login({
       newErrors.password = 'Password must be at least 4 characters';
     }
 
+    if (selectedRole === 'operator' && passcode !== OPERATOR_PASSCODE) {
+      newErrors.passcode = 'Incorrect operator passcode';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -79,6 +86,10 @@ export default function Login({
 
   // Demo Account 1-Click Access
   const handleUseDemoAccount = () => {
+    if (selectedRole === 'operator' && passcode !== OPERATOR_PASSCODE) {
+      setErrors({ passcode: 'Enter the operator passcode first' });
+      return;
+    }
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
@@ -322,6 +333,35 @@ export default function Login({
                   </div>
                 )}
               </div>
+
+              {selectedRole === 'operator' && (
+                <div className="auth-field-group">
+                  <label htmlFor="auth-passcode-input" className="auth-field-label">
+                    Operator passcode
+                  </label>
+                  <div className={`auth-input-wrapper ${errors.passcode ? 'input-has-error' : ''}`}>
+                    <Lock size={16} className="auth-input-icon" />
+                    <input
+                      id="auth-passcode-input"
+                      type="password"
+                      className="auth-text-input"
+                      placeholder="Enter operator passcode"
+                      value={passcode}
+                      onChange={(e) => {
+                        setPasscode(e.target.value);
+                        if (errors.passcode) setErrors((prev) => ({ ...prev, passcode: null }));
+                      }}
+                      autoComplete="off"
+                    />
+                  </div>
+                  {errors.passcode && (
+                    <div className="auth-field-error-message">
+                      <AlertCircle size={13} />
+                      <span>{errors.passcode}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Forgot password notice */}
               {forgotPasswordNotice && (
