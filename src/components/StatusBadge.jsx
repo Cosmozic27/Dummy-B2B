@@ -17,6 +17,15 @@ export default function StatusBadge({ status, size = 'md' }) {
           dot: '#06b6d4',
           pulse: true
         };
+      case 'ACTIVE':
+        return {
+          label: 'ACTIVE',
+          bg: 'rgba(16, 185, 129, 0.12)',
+          border: 'rgba(16, 185, 129, 0.3)',
+          text: '#34d399',
+          dot: '#10b981',
+          pulse: false
+        };
       case 'BOARDING':
         return {
           label: 'BOARDING',
@@ -57,14 +66,14 @@ export default function StatusBadge({ status, size = 'md' }) {
   };
 
   const config = getStatusConfig(status);
-  const sizeClasses = size === 'sm' 
-    ? 'status-badge-sm' 
-    : size === 'lg' 
-      ? 'status-badge-lg' 
+  const sizeClasses = size === 'sm'
+    ? 'status-badge-sm'
+    : size === 'lg'
+      ? 'status-badge-lg'
       : 'status-badge-md';
 
   return (
-    <span 
+    <span
       className={`status-badge ${sizeClasses}`}
       style={{
         backgroundColor: config.bg,
@@ -72,7 +81,7 @@ export default function StatusBadge({ status, size = 'md' }) {
         color: config.text
       }}
     >
-      <span 
+      <span
         className={`status-badge-dot ${config.pulse ? 'pulse-animation' : ''}`}
         style={{ backgroundColor: config.dot }}
       />
