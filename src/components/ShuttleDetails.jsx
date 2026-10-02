@@ -30,7 +30,9 @@ export default function ShuttleDetails({
   allShuttles = [], 
   onBack, 
   lastUpdated = 'Just now',
-  onSelectAnotherShuttle 
+  onSelectAnotherShuttle,
+  selectedStopId,
+  onSelectStop
 }) {
   const [focusTrigger, setFocusTrigger] = useState(0);
 
@@ -109,6 +111,8 @@ export default function ShuttleDetails({
               selectedShuttle={shuttle}
               onSelectShuttle={onSelectAnotherShuttle || (() => {})}
               campusStops={CAMPUS_STOPS}
+              selectedStopId={selectedStopId}
+              onSelectStop={onSelectStop}
               focusTrigger={focusTrigger}
               className="details-map-custom-view"
             />
@@ -148,9 +152,21 @@ export default function ShuttleDetails({
               <Route size={18} className="route-panel-icon" />
               <div>
                 <h3 className="route-panel-title">CURRENT ROUTE</h3>
-                <span className="route-panel-sub">{shuttle.routeFullName || 'Standard Campus Corridor'}</span>
+                <span className="details-route-sub">{shuttle.routeFullName || 'Standard Campus Corridor'}</span>
               </div>
             </div>
+
+            {shuttle.trip && (
+              <div className="details-trip-progress">
+                <div className="details-trip-progress-copy">
+                  <span>{shuttle.trip.active ? 'TRIP ACTIVE' : `TRIP ${shuttle.trip.status}`}</span>
+                  <strong>{shuttle.trip.progressPercent}% complete</strong>
+                </div>
+                <div className="details-trip-progress-track">
+                  <span style={{ width: `${shuttle.trip.progressPercent}%` }} />
+                </div>
+              </div>
+            )}
 
             {/* Visual Route Progression Sequence */}
             <div className="route-visual-progression">
@@ -268,7 +284,11 @@ export default function ShuttleDetails({
           <TelemetryCard shuttle={shuttle} lastUpdated={lastUpdated} />
 
           {/* UPCOMING STOPS TIMELINE (Reused from UpcomingStops) */}
-          <UpcomingStops selectedShuttle={shuttle} />
+          <UpcomingStops
+            selectedShuttle={shuttle}
+            selectedStopId={selectedStopId}
+            onSelectStop={onSelectStop}
+          />
         </aside>
       </div>
     </div>

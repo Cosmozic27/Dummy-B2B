@@ -4,11 +4,20 @@ import { CheckCircle2, Clock, MapPin, Navigation, Compass, AlertCircle } from 'l
 /**
  * Individual Stop item card
  */
-export function StopCard({ stop, index, isCurrent, isPassed, isLast, onSelectStop }) {
+export function StopCard({ stop, index, isCurrent, isPassed, isLast, isSelected, onSelectStop }) {
   return (
     <div 
-      className={`stop-card-item ${isCurrent ? 'stop-card-current' : ''} ${isPassed ? 'stop-card-passed' : ''}`}
+      className={`stop-card-item ${isCurrent ? 'stop-card-current' : ''} ${isPassed ? 'stop-card-passed' : ''} ${isSelected ? 'stop-card-selected' : ''}`}
       onClick={() => onSelectStop && onSelectStop(stop)}
+      onKeyDown={(event) => {
+        if (onSelectStop && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onSelectStop(stop);
+        }
+      }}
+      role={onSelectStop ? 'button' : undefined}
+      tabIndex={onSelectStop ? 0 : undefined}
+      aria-pressed={onSelectStop ? isSelected : undefined}
     >
       {/* Timeline track and node */}
       <div className="stop-timeline-track">
@@ -52,7 +61,7 @@ export function StopCard({ stop, index, isCurrent, isPassed, isLast, onSelectSto
  * UpcomingStops Component
  * Displays the sequence of stops for the selected shuttle
  */
-export default function UpcomingStops({ selectedShuttle, onSelectStop }) {
+export default function UpcomingStops({ selectedShuttle, onSelectStop, selectedStopId, selectedStopName }) {
   if (!selectedShuttle || !selectedShuttle.stops || selectedShuttle.stops.length === 0) {
     return (
       <div className="upcoming-stops-panel empty-stops">
@@ -92,6 +101,9 @@ export default function UpcomingStops({ selectedShuttle, onSelectStop }) {
               isCurrent={isCurrent}
               isPassed={isPassed}
               isLast={isLast}
+              isSelected={stop.id === selectedStopId || Boolean(
+                selectedStopName && stop.name.toLowerCase().includes(selectedStopName.toLowerCase())
+              )}
               onSelectStop={onSelectStop}
             />
           );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import TopNav from './components/TopNav';
 import MainHeader from './components/MainHeader';
 import MapView from './components/MapView';
@@ -7,8 +7,10 @@ import ShuttleList from './components/ShuttleList';
 import UpcomingStops from './components/UpcomingStops';
 import ShuttleDetails from './components/ShuttleDetails';
 import OperatorDashboard from './components/OperatorDashboard';
+import StopArrivalsPanel from './components/StopArrivalsPanel';
 import Login from './pages/Login';
-import { MOCK_SHUTTLES, CAMPUS_STOPS, SYSTEM_METRICS } from './data/mockShuttles';
+import { MOCK_SHUTTLES, CAMPUS_STOPS } from './data/mockShuttles';
+import { SIMULATION_TICK_MS, transitReducer } from './services/tripSimulator';
 import './styles/dashboard.css';
 import { 
   Bookmark, 
@@ -23,16 +25,25 @@ import {
   Sparkles
 } from 'lucide-react';
 
+function formatLastUpdated(now, lastUpdatedAt) {
+  const seconds = Math.max(0, Math.floor((now - lastUpdatedAt) / 1000));
+  if (seconds < 5) return 'Updated just now';
+  if (seconds < 60) return `Updated ${seconds}s ago`;
+  return `Updated ${Math.floor(seconds / 60)}m ago`;
+}
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [shuttles, setShuttles] = useState(MOCK_SHUTTLES);
+  const [shuttles, dispatchTransit] = useReducer(transitReducer, MOCK_SHUTTLES);
   const [selectedShuttleId, setSelectedShuttleId] = useState(MOCK_SHUTTLES[0]?.id || 'BUS-01');
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'details'
   const [currentMode, setCurrentMode] = useState('student'); // 'student' | 'operator'
-  const [lastUpdated, setLastUpdated] = useState('Updated just now');
+  const [selectedStopId, setSelectedStopId] = useState('');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(0);
+  const [clockNow, setClockNow] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const lastUpdated = formatLastUpdated(clockNow, lastUpdatedAt);
 
   // Handle login success — role from Login drives the initial mode
   const handleLoginSuccess = (role) => {
@@ -43,48 +54,92 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Active selected shuttle object
+  // All student and operator views read from this single root-owned fleet state.
   const selectedShuttle = shuttles.find((s) => s.id === selectedShuttleId) || shuttles[0];
+  const selectedStop = CAMPUS_STOPS.find((stop) => stop.id === selectedStopId) || null;
+  const hasActiveTrips = shuttles.some((shuttle) => shuttle.trip?.active);
 
-  // Automatic elapsed time ticker for "Updated just now" simulation
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsElapsed((prev) => {
-        const next = prev + 5;
-        if (next < 60) {
-          setLastUpdated(`Updated ${next}s ago`);
-        } else {
-          setLastUpdated(`Updated ${Math.floor(next / 60)}m ago`);
-        }
-        return next;
-      });
-    }, 5000);
-
-    return () => clearInterval(timer);
+    const initializeClock = setTimeout(() => {
+      const now = Date.now();
+      setLastUpdatedAt(now);
+      setClockNow(now);
+    }, 0);
+    const timer = setInterval(() => setClockNow(Date.now()), 1000);
+    return () => {
+      clearTimeout(initializeClock);
+      clearInterval(timer);
+    };
   }, []);
+
+  // One lightweight, cleaned-up timer advances every active trip in the shared reducer.
+  useEffect(() => {
+    if (!hasActiveTrips) return undefined;
+    let lastTickAt = Date.now();
+    let lastFreshnessUpdateAt = lastTickAt;
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const deltaMs = Math.min(now - lastTickAt, 1000);
+      lastTickAt = now;
+      dispatchTransit({ type: 'tick', deltaMs });
+      if (now - lastFreshnessUpdateAt >= 1000) {
+        setLastUpdatedAt(now);
+        lastFreshnessUpdateAt = now;
+      }
+    }, SIMULATION_TICK_MS);
+    return () => clearInterval(timer);
+  }, [hasActiveTrips]);
 
   // Manual telemetry refresh handler (simulates live GPS poll)
   const handleRefreshTelemetry = () => {
     setIsRefreshing(true);
-    setLastUpdated('Syncing GPS...');
+    setLastUpdatedAt(Date.now());
 
     setTimeout(() => {
-      // Simulate minor jitter in GPS coordinates to demonstrate live movement
-      setShuttles((prev) =>
-        prev.map((s) => ({
-          ...s,
-          latitude: s.latitude + (Math.random() - 0.5) * 0.0003,
-          longitude: s.longitude + (Math.random() - 0.5) * 0.0003
-        }))
+      // Keep active trip coordinates on-route; only idle mocks receive GPS jitter.
+      const offsets = Object.fromEntries(
+        shuttles
+          .filter((shuttle) => !shuttle.trip?.active)
+          .map((shuttle) => [shuttle.id, {
+            latitude: (Math.random() - 0.5) * 0.0003,
+            longitude: (Math.random() - 0.5) * 0.0003
+          }])
       );
-      setSecondsElapsed(0);
-      setLastUpdated('Updated just now');
+      dispatchTransit({ type: 'refresh', offsets });
+      setLastUpdatedAt(Date.now());
       setIsRefreshing(false);
     }, 600);
   };
 
   const handleSelectShuttle = (shuttle) => {
-    setSelectedShuttleId(shuttle.id);
+    if (shuttle?.id) setSelectedShuttleId(shuttle.id);
+  };
+
+  const handleStartTrip = (vehicleId, routeId, speedMultiplier) => {
+    dispatchTransit({ type: 'start-trip', vehicleId, routeId, speedMultiplier, now: Date.now() });
+    setSelectedShuttleId(vehicleId);
+    setLastUpdatedAt(Date.now());
+  };
+
+  const handleStopTrip = (vehicleId) => {
+    dispatchTransit({ type: 'stop-trip', vehicleId });
+    setLastUpdatedAt(Date.now());
+  };
+
+  const handleSelectStop = (candidate) => {
+    if (typeof candidate === 'string') {
+      if (CAMPUS_STOPS.some((stop) => stop.id === candidate)) setSelectedStopId(candidate);
+      return;
+    }
+    if (!candidate) return;
+    const candidateName = String(candidate.name || '').toLowerCase();
+    const matchedStop = CAMPUS_STOPS.find((stop) => {
+      if (candidate.id === stop.id) return true;
+      const stopName = stop.name.toLowerCase();
+      return stopName.includes(candidateName) || candidateName.includes(stopName) ||
+        (candidateName.includes('food court') && stopName.includes('sports arena'));
+    });
+    if (matchedStop) setSelectedStopId(matchedStop.id);
   };
 
   // Open the dedicated Shuttle Details view
@@ -155,6 +210,8 @@ export default function App() {
             shuttles={shuttles}
             selectedShuttleId={selectedShuttleId}
             onSelectShuttle={handleSelectShuttle}
+            onStartTrip={handleStartTrip}
+            onStopTrip={handleStopTrip}
             onSwitchToStudent={() => handleToggleMode('student')}
             lastUpdated={lastUpdated}
             onRefreshTelemetry={handleRefreshTelemetry}
@@ -176,6 +233,8 @@ export default function App() {
                     onBack={handleBackToDashboard}
                     lastUpdated={lastUpdated}
                     onSelectAnotherShuttle={handleSelectShuttle}
+                    selectedStopId={selectedStopId}
+                    onSelectStop={handleSelectStop}
                   />
                 </main>
               ) : (
@@ -199,6 +258,8 @@ export default function App() {
                         onSelectShuttle={handleSelectShuttle}
                         onOpenDetails={handleOpenShuttleDetails}
                         campusStops={CAMPUS_STOPS}
+                        selectedStopId={selectedStopId}
+                        onSelectStop={handleSelectStop}
                       />
                     </div>
 
@@ -224,9 +285,15 @@ export default function App() {
                       {/* 6. UPCOMING STOPS */}
                       <UpcomingStops
                         selectedShuttle={selectedShuttle}
-                        onSelectStop={(stop) => {
-                          console.log('Selected stop:', stop);
-                        }}
+                        selectedStopId={selectedStopId}
+                        selectedStopName={selectedStop?.name}
+                        onSelectStop={handleSelectStop}
+                      />
+                      <StopArrivalsPanel
+                        stops={CAMPUS_STOPS}
+                        selectedStopId={selectedStopId}
+                        onSelectStop={handleSelectStop}
+                        shuttles={shuttles}
                       />
                     </aside>
                   </div>

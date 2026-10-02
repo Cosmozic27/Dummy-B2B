@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CAMPUS_CENTER, CAMPUS_STOPS } from '../data/mockShuttles';
+import { getRouteById } from '../services/tripSimulator';
 import { Maximize2, Crosshair, Layers, Navigation } from 'lucide-react';
 
 /**
@@ -34,7 +35,7 @@ const createShuttleIcon = (shuttle, isSelected) => {
   `;
 
   return L.divIcon({
-    className: 'leaflet-custom-shuttle-wrapper',
+    className: `leaflet-custom-shuttle-wrapper ${shuttle.trip?.active ? 'leaflet-shuttle-moving' : ''}`,
     html: html,
     iconSize: [44, 44],
     iconAnchor: [22, 22],
@@ -45,9 +46,9 @@ const createShuttleIcon = (shuttle, isSelected) => {
 /**
  * Creates custom HTML divIcon for campus stops
  */
-const createStopIcon = (stop, isTarget) => {
+const createStopIcon = (stop, isTarget, isSelected) => {
   const html = `
-    <div class="custom-stop-marker ${isTarget ? 'stop-is-target' : ''}">
+    <div class="custom-stop-marker ${isTarget ? 'stop-is-target' : ''} ${isSelected ? 'stop-is-selected' : ''}">
       <div class="stop-marker-dot">
         <span class="stop-marker-center"></span>
       </div>
@@ -71,15 +72,21 @@ const createStopIcon = (stop, isTarget) => {
  */
 function MapController({ selectedShuttle, focusTrigger }) {
   const map = useMap();
+  const selectedShuttleRef = React.useRef(selectedShuttle);
 
   useEffect(() => {
-    if (selectedShuttle && selectedShuttle.latitude && selectedShuttle.longitude) {
-      map.flyTo([selectedShuttle.latitude, selectedShuttle.longitude], 16.5, {
+    selectedShuttleRef.current = selectedShuttle;
+  }, [selectedShuttle]);
+
+  useEffect(() => {
+    const target = selectedShuttleRef.current;
+    if (target && target.latitude && target.longitude) {
+      map.flyTo([target.latitude, target.longitude], 16.5, {
         animate: true,
         duration: 1.2
       });
     }
-  }, [selectedShuttle, focusTrigger, map]);
+  }, [selectedShuttle?.id, focusTrigger, map]);
 
   return null;
 }
@@ -93,10 +100,16 @@ export default function MapView({
   onSelectShuttle,
   onOpenDetails,
   campusStops = CAMPUS_STOPS,
+  selectedStopId,
+  onSelectStop,
   focusTrigger = 0,
   className = ''
 }) {
   const mapRef = React.useRef(null);
+  const activeRoute = selectedShuttle?.trip?.routeId
+    ? getRouteById(selectedShuttle.trip.routeId)
+    : null;
+  const displayedPolyline = activeRoute?.polyline || selectedShuttle?.polyline;
 
   const handleResetView = () => {
     if (mapRef.current) {
@@ -166,11 +179,11 @@ export default function MapView({
         <MapController selectedShuttle={selectedShuttle} focusTrigger={focusTrigger} />
 
         {/* Selected Shuttle Polyline Route */}
-        {selectedShuttle && selectedShuttle.polyline && (
+        {selectedShuttle && displayedPolyline && (
           <>
             {/* Outer soft glow route line */}
             <Polyline
-              positions={selectedShuttle.polyline}
+              positions={displayedPolyline}
               pathOptions={{
                 color: selectedShuttle.accentColor || '#06b6d4',
                 weight: 8,
@@ -181,7 +194,7 @@ export default function MapView({
             />
             {/* Core crisp route line */}
             <Polyline
-              positions={selectedShuttle.polyline}
+              positions={displayedPolyline}
               pathOptions={{
                 color: selectedShuttle.accentColor || '#06b6d4',
                 weight: 3.5,
@@ -196,12 +209,17 @@ export default function MapView({
 
         {/* Campus Stops */}
         {campusStops.map((stop) => {
-          const isTarget = selectedShuttle && selectedShuttle.nextStop === stop.name;
+          const nextStopName = selectedShuttle?.nextStop?.toLowerCase() || '';
+          const isTarget = nextStopName && (
+            stop.name.toLowerCase().includes(nextStopName) || nextStopName.includes(stop.name.toLowerCase())
+          );
+          const isStopSelected = stop.id === selectedStopId;
           return (
             <Marker
               key={stop.id}
               position={[stop.latitude, stop.longitude]}
-              icon={createStopIcon(stop, isTarget)}
+              icon={createStopIcon(stop, isTarget, isStopSelected)}
+              eventHandlers={{ click: () => onSelectStop?.(stop) }}
             >
               <Popup className="custom-leaflet-popup">
                 <div className="popup-stop-content">

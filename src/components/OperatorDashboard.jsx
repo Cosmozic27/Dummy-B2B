@@ -24,6 +24,7 @@ import FleetSummaryCards from './FleetSummaryCards';
 import FleetTable from './FleetTable';
 import AttentionPanel from './AttentionPanel';
 import { CAMPUS_STOPS } from '../data/mockShuttles';
+import { DEFAULT_SIMULATION_SPEED, getRouteOptions } from '../services/tripSimulator';
 
 /**
  * OperatorDashboard Component
@@ -33,23 +34,35 @@ export default function OperatorDashboard({
   shuttles = [],
   selectedShuttleId,
   onSelectShuttle,
+  onStartTrip,
+  onStopTrip,
   onSwitchToStudent,
   lastUpdated = 'Just now',
   onRefreshTelemetry,
   isRefreshing
 }) {
   const [focusTrigger, setFocusTrigger] = useState(0);
+  const [routeSelection, setRouteSelection] = useState(null);
+  const [simulationSpeed, setSimulationSpeed] = useState(DEFAULT_SIMULATION_SPEED);
 
   // Active selected vehicle
   const selectedShuttle = shuttles.find((s) => s.id === selectedShuttleId) || shuttles[0];
+  const routeOptions = getRouteOptions();
+  const selectedRouteId = routeSelection?.vehicleId === selectedShuttle?.id
+    ? routeSelection.routeId
+    : selectedShuttle?.trip?.routeId || selectedShuttle?.id;
+  const selectedRoute = routeOptions.find((route) => route.id === selectedRouteId) || routeOptions[0];
+  const tripIsActive = Boolean(selectedShuttle?.trip?.active);
 
   // Route progress calculations
   const stops = selectedShuttle?.stops || [];
   const totalStopsCount = stops.length;
   const passedStopsCount = stops.filter((s) => s.status === 'passed').length;
-  const routeProgressPercent = totalStopsCount > 0 
-    ? Math.round(((passedStopsCount + (selectedShuttle?.status === 'ON ROUTE' ? 0.5 : 0)) / totalStopsCount) * 100) 
-    : 50;
+  const routeProgressPercent = selectedShuttle?.trip
+    ? selectedShuttle.trip.progressPercent
+    : totalStopsCount > 0
+      ? Math.round(((passedStopsCount + (selectedShuttle?.status === 'ON ROUTE' ? 0.5 : 0)) / totalStopsCount) * 100)
+      : 50;
 
   const handleTrackVehicle = (shuttle) => {
     if (shuttle && shuttle.id) {
@@ -193,6 +206,91 @@ export default function OperatorDashboard({
 
         {/* RIGHT COLUMN: Selected Vehicle Panel, Route Overview, Attention Alerts */}
         <aside className="operator-sidebar-col">
+          <section className="trip-control-panel" aria-labelledby="trip-control-title">
+            <div className="trip-control-heading">
+              <div>
+                <span className="trip-control-kicker">DEMO DISPATCH</span>
+                <h3 id="trip-control-title">Trip Simulation</h3>
+              </div>
+              <span className={`trip-state-pill ${tripIsActive ? 'trip-state-active' : ''}`}>
+                <span />{tripIsActive ? 'TRIP ACTIVE' : 'READY'}
+              </span>
+            </div>
+
+            <div className="trip-control-fields">
+              <label>
+                <span>Vehicle</span>
+                <select
+                  value={selectedShuttle?.id || ''}
+                  onChange={(event) => {
+                    const vehicle = shuttles.find((item) => item.id === event.target.value);
+                    if (vehicle) onSelectShuttle(vehicle);
+                  }}
+                  aria-label="Select vehicle for trip simulation"
+                >
+                  {shuttles.map((shuttle) => (
+                    <option key={shuttle.id} value={shuttle.id}>{shuttle.id} · {shuttle.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Route</span>
+                <select
+                  value={selectedRoute?.id || ''}
+                  onChange={(event) => setRouteSelection({ vehicleId: selectedShuttle?.id, routeId: event.target.value })}
+                  aria-label="Select route for trip simulation"
+                >
+                  {routeOptions.map((route) => (
+                    <option key={route.id} value={route.id}>{route.label} · {route.route}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Demo speed</span>
+                <select
+                  value={simulationSpeed}
+                  onChange={(event) => setSimulationSpeed(Number(event.target.value))}
+                  aria-label="Select trip simulation speed"
+                >
+                  {[1, 2, 4].map((speed) => <option key={speed} value={speed}>{speed}×</option>)}
+                </select>
+              </label>
+            </div>
+
+            {tripIsActive ? (
+              <button
+                type="button"
+                className="trip-stop-button"
+                onClick={() => onStopTrip?.(selectedShuttle.id)}
+              >
+                STOP SIMULATION
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="trip-start-button"
+                onClick={() => onStartTrip?.(selectedShuttle.id, selectedRoute?.id, simulationSpeed)}
+                disabled={!selectedShuttle || !selectedRoute}
+              >
+                START TRIP
+              </button>
+            )}
+
+            {selectedShuttle?.trip && (
+              <div className="trip-control-summary" aria-live="polite">
+                <div className="trip-summary-progress">
+                  <span>Progress</span>
+                  <strong>{selectedShuttle.trip.progressPercent}%</strong>
+                  <div className="trip-summary-track"><span style={{ width: `${selectedShuttle.trip.progressPercent}%` }} /></div>
+                </div>
+                <div><span>Current / last stop</span><strong>{selectedShuttle.trip.currentStop}</strong></div>
+                <div><span>Next stop · ETA</span><strong>{selectedShuttle.trip.nextStop} · {selectedShuttle.eta}</strong></div>
+                <div><span>Route · speed</span><strong>{selectedShuttle.routeFullName || selectedShuttle.route} · {selectedShuttle.speed}</strong></div>
+              </div>
+            )}
+            <p className="trip-control-note">Frontend demo only — this does not control a real vehicle.</p>
+          </section>
+
           {/* 5. SELECTED VEHICLE PANEL */}
           <div className="selected-vehicle-panel">
             <div className="vehicle-panel-top">
@@ -298,7 +396,7 @@ export default function OperatorDashboard({
               <div className="stops-summary-item">
                 <span className="stops-sub-label">Current / Last Stop</span>
                 <strong className="stops-main-label">
-                  {stops.find((s) => s.status === 'passed')?.name || stops[0]?.name || 'Hostel Complex'}
+                  {selectedShuttle?.trip?.currentStop || stops.find((s) => s.status === 'passed')?.name || stops[0]?.name || 'Hostel Complex'}
                 </strong>
               </div>
               <div className="stops-summary-arrow">
