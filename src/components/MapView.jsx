@@ -57,6 +57,29 @@ function MapController({ selectedShuttle, focusTrigger }) {
   }, [selectedShuttle]);
 
   useEffect(() => {
+    const container = map.getContainer();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    let frameId = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        map.invalidateSize({ pan: false, animate: false });
+      });
+    });
+
+    observer.observe(container);
+    frameId = window.requestAnimationFrame(() => {
+      map.invalidateSize({ pan: false, animate: false });
+    });
+
+    return () => {
+      observer.disconnect();
+      if (frameId) window.cancelAnimationFrame(frameId);
+    };
+  }, [map]);
+
+  useEffect(() => {
     const target = selectedShuttleRef.current;
     if (target && Number.isFinite(target.latitude) && Number.isFinite(target.longitude)) {
       map.flyTo([target.latitude, target.longitude], 16.5, { animate: true, duration: 1.2 });

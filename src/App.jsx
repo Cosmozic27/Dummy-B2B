@@ -257,8 +257,8 @@ function DashboardApp() {
           )}
 
           {activeTab === 'MyShuttle' && (
-            <main className="subview-container">
-              <div className="subview-card">
+            <main className="subview-container subview-page-my-shuttle">
+              <div className="subview-card subview-card-my-shuttle">
                 <div className="subview-header">
                   <div className="live-system-badge-container">
                     <Bookmark size={16} className="text-accent" />
@@ -268,7 +268,7 @@ function DashboardApp() {
                   <p className="subview-desc">Quick access to a shuttle in the live fleet.</p>
                 </div>
                 {selectedShuttle ? (
-                  <div style={{ maxWidth: '640px' }}>
+                  <div className="pinned-shuttle-content">
                     <NextArrivalCard
                       shuttle={selectedShuttle}
                       onFocusShuttle={() => {
@@ -284,8 +284,8 @@ function DashboardApp() {
           )}
 
           {activeTab === 'Profile' && (
-            <main className="subview-container">
-              <div className="subview-card" style={{ maxWidth: '780px' }}>
+            <main className="subview-container subview-page-profile">
+              <div className="subview-card subview-card-profile">
                 <div className="subview-header">
                   <div className="live-system-badge-container">
                     <ShieldCheck size={16} color="#10b981" />
