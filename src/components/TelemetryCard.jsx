@@ -1,111 +1,27 @@
-import React from 'react';
-import { 
-  Gauge, 
-  Users, 
-  MapPin, 
-  Clock, 
-  ShieldCheck, 
-  Compass, 
-  Activity,
-  Zap
-} from 'lucide-react';
+import { Activity, Clock, Gauge, MapPin, ShieldCheck, Users } from 'lucide-react';
 
-/**
- * TelemetryCard Component
- * Displays real-time vehicle telematics including speed, occupancy, distance, and health status
- */
 export default function TelemetryCard({ shuttle, lastUpdated = 'Just now' }) {
   if (!shuttle) return null;
-
-  // Derive distance to next stop from mock stops or fallback
-  const nextStopObj = shuttle.stops?.find((s) => s.isTarget || s.status === 'current');
-  const distanceToNext = nextStopObj?.distance || '400 m away';
+  const nextStop = shuttle.stops?.find((stop) => stop.isTarget || stop.status === 'current');
+  const coordinates = Number.isFinite(shuttle.latitude) && Number.isFinite(shuttle.longitude)
+    ? `${shuttle.latitude.toFixed(5)}, ${shuttle.longitude.toFixed(5)}`
+    : 'Not available';
+  const metrics = [
+    { label: 'Current Speed', value: shuttle.speed || '—', meta: 'From vehicle document', icon: Gauge, color: 'text-cyan' },
+    { label: 'Crowding', value: shuttle.crowding || 'Not reported', meta: 'From vehicle document', icon: Users, color: 'text-emerald' },
+    { label: 'Distance to Stop', value: nextStop?.distance || '—', meta: `To ${shuttle.nextStop || 'next stop'}`, icon: MapPin, color: 'text-amber' },
+    { label: 'Last Updated', value: lastUpdated, meta: 'Firestore snapshot', icon: Clock, color: 'text-purple' },
+    { label: 'Vehicle Status', value: shuttle.status || 'Unknown', meta: shuttle.isDelayed ? `${shuttle.delayMinutes} min delay reported` : 'Live vehicle status', icon: ShieldCheck, color: 'text-emerald' },
+    { label: 'Coordinates', value: coordinates, meta: 'Latitude, longitude', icon: Activity, color: 'text-cyan' },
+  ];
 
   return (
     <div className="telemetry-card-container">
-      <div className="telemetry-card-header">
-        <div className="telemetry-card-title-group">
-          <Activity size={17} className="telemetry-icon-pulse" />
-          <h4 className="telemetry-card-title">Live Telemetry</h4>
-        </div>
-        <div className="telemetry-live-pill">
-          <span className="telemetry-dot-ping" />
-          <span>Realtime GPS</span>
-        </div>
-      </div>
-
+      <div className="telemetry-card-header"><div className="telemetry-card-title-group"><Activity size={17} className="telemetry-icon-pulse" /><h4 className="telemetry-card-title">Live Telemetry</h4></div><div className="telemetry-live-pill"><span className="telemetry-dot-ping" /><span>Firestore snapshots</span></div></div>
       <div className="telemetry-metrics-grid">
-        {/* Metric 1: Current Speed */}
-        <div className="metric-box">
-          <div className="metric-box-top">
-            <span className="metric-box-label">Current Speed</span>
-            <Gauge size={16} className="metric-box-icon text-cyan" />
-          </div>
-          <div className="metric-box-value">
-            {shuttle.speed || '24 km/h'}
-          </div>
-          <span className="metric-box-meta">Normal Cruising</span>
-        </div>
-
-        {/* Metric 2: Passenger Occupancy */}
-        <div className="metric-box">
-          <div className="metric-box-top">
-            <span className="metric-box-label">Occupancy</span>
-            <Users size={16} className="metric-box-icon text-emerald" />
-          </div>
-          <div className="metric-box-value">
-            {shuttle.occupancy || '42%'}
-          </div>
-          <span className="metric-box-meta">{shuttle.occupancyLabel || 'Moderate Seating'}</span>
-        </div>
-
-        {/* Metric 3: Distance to Next Stop */}
-        <div className="metric-box">
-          <div className="metric-box-top">
-            <span className="metric-box-label">Distance to Stop</span>
-            <MapPin size={16} className="metric-box-icon text-amber" />
-          </div>
-          <div className="metric-box-value">
-            {distanceToNext}
-          </div>
-          <span className="metric-box-meta">To {shuttle.nextStop}</span>
-        </div>
-
-        {/* Metric 4: Last Telemetry Update */}
-        <div className="metric-box">
-          <div className="metric-box-top">
-            <span className="metric-box-label">Last Updated</span>
-            <Clock size={16} className="metric-box-icon text-purple" />
-          </div>
-          <div className="metric-box-value">
-            {lastUpdated}
-          </div>
-          <span className="metric-box-meta">GPS Lock: Strong (12 sats)</span>
-        </div>
-
-        {/* Metric 5: Vehicle Operational Status */}
-        <div className="metric-box">
-          <div className="metric-box-top">
-            <span className="metric-box-label">Vehicle Health</span>
-            <ShieldCheck size={16} className="metric-box-icon text-emerald" />
-          </div>
-          <div className="metric-box-value">
-            Nominal
-          </div>
-          <span className="metric-box-meta">All Subsystems OK</span>
-        </div>
-
-        {/* Metric 6: Compass Bearing */}
-        <div className="metric-box">
-          <div className="metric-box-top">
-            <span className="metric-box-label">Heading Direction</span>
-            <Compass size={16} className="metric-box-icon text-cyan" />
-          </div>
-          <div className="metric-box-value">
-            {shuttle.heading || 145}° SE
-          </div>
-          <span className="metric-box-meta">On Corridor Lane</span>
-        </div>
+        {metrics.map(({ label, value, meta, icon: Icon, color }) => (
+          <div className="metric-box" key={label}><div className="metric-box-top"><span className="metric-box-label">{label}</span><Icon size={16} className={`metric-box-icon ${color}`} /></div><div className="metric-box-value">{value}</div><span className="metric-box-meta">{meta}</span></div>
+        ))}
       </div>
     </div>
   );

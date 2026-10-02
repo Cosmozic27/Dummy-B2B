@@ -1,17 +1,31 @@
-import React from 'react';
 import { Clock, MapPin, Radio } from 'lucide-react';
-import { estimateArrivalAtStop } from '../services/tripSimulator';
+import { formatEta, getEta } from '../lib/eta.js';
 
-export default function StopArrivalsPanel({ stops = [], selectedStopId, onSelectStop, shuttles = [] }) {
-  const selectedStop = stops.find((stop) => stop.id === selectedStopId) || null;
+export default function StopArrivalsPanel({
+  stops = [],
+  vehicles = [],
+  routes = [],
+  rawStops = [],
+  selectedStopId,
+  onSelectStop,
+}) {
+  const selectedStop = rawStops.find((stop) => stop.id === selectedStopId) || null;
   const arrivals = selectedStop
-    ? shuttles
-        .map((shuttle) => {
-          const estimate = estimateArrivalAtStop(shuttle, selectedStop);
-          return estimate ? { shuttle, ...estimate } : null;
+    ? vehicles
+        .filter((vehicle) => Number(vehicle.speed) > 0 && vehicle.routeId)
+        .map((vehicle) => {
+          const route = routes.find((item) => item.id === vehicle.routeId);
+          const estimate = getEta(vehicle, selectedStop, route, rawStops);
+          return estimate ? {
+            vehicle,
+            route,
+            minutes: estimate.minutes,
+            eta: formatEta(estimate),
+            remainingMeters: estimate.distanceKm * 1000,
+          } : null;
         })
         .filter(Boolean)
-        .sort((a, b) => a.etaSeconds - b.etaSeconds)
+        .sort((first, second) => first.minutes - second.minutes)
     : [];
 
   return (
@@ -20,7 +34,7 @@ export default function StopArrivalsPanel({ stops = [], selectedStopId, onSelect
         <div className="stop-arrivals-heading-icon"><MapPin size={16} /></div>
         <div>
           <h3 id="stop-arrivals-title">Arrivals at a Stop</h3>
-          <p>Live estimates from active simulated trips</p>
+          <p>Live estimates for vehicles in motion</p>
         </div>
         <span className="stop-arrivals-live"><Radio size={13} /> LIVE</span>
       </div>
@@ -44,13 +58,13 @@ export default function StopArrivalsPanel({ stops = [], selectedStopId, onSelect
           </div>
           {arrivals.length > 0 ? (
             <div className="stop-arrival-list" aria-live="polite">
-              {arrivals.map(({ shuttle, eta, remainingMeters }) => (
-                <div className="stop-arrival-row" key={shuttle.id}>
+              {arrivals.map(({ vehicle, route, eta, remainingMeters }) => (
+                <div className="stop-arrival-row" key={vehicle.id}>
                   <div className="stop-arrival-vehicle">
-                    <span className="stop-arrival-color" style={{ backgroundColor: shuttle.accentColor || '#06b6d4' }} />
+                    <span className="stop-arrival-color" style={{ backgroundColor: route?.color || '#06b6d4' }} />
                     <div>
-                      <strong>{shuttle.id}</strong>
-                      <span>{shuttle.name} · {Math.round(remainingMeters)} m to stop</span>
+                      <strong>{vehicle.name || vehicle.id}</strong>
+                      <span>{route?.name || 'Unassigned route'} · {Math.round(remainingMeters)} m via route</span>
                     </div>
                   </div>
                   <div className="stop-arrival-eta"><Clock size={14} /><strong>{eta}</strong></div>
@@ -59,12 +73,12 @@ export default function StopArrivalsPanel({ stops = [], selectedStopId, onSelect
             </div>
           ) : (
             <p className="stop-arrivals-empty" aria-live="polite">
-              No active trip is currently approaching this stop. Start a trip on a route that serves it to see a live ETA.
+              No moving vehicle on a route serving this stop. Start a trip from the operator view to see a live ETA.
             </p>
           )}
         </>
       ) : (
-        <p className="stop-arrivals-empty">Choose a stop here or click a stop marker on the map to see approaching shuttles.</p>
+        <p className="stop-arrivals-empty">Choose a stop here or click a stop marker on the map to see approaching vehicles.</p>
       )}
     </section>
   );

@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  Bus, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  ArrowLeft, 
-  ShieldCheck, 
-  User, 
-  SlidersHorizontal, 
-  Sparkles, 
-  CheckCircle2, 
+import {
+  Bus,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ArrowLeft,
+  User,
+  SlidersHorizontal,
+  Sparkles,
+  CheckCircle2,
   AlertCircle,
   Radio,
   Navigation
@@ -21,17 +20,20 @@ import {
  * Login Component / Page
  * Polished mobility-tech authentication screen supporting Student and Operator roles
  */
-export default function Login({ 
-  onLoginSuccess, 
-  onCancel, 
-  initialRole = 'student' 
+export default function Login({
+  onLoginSuccess,
+  onCancel,
+  initialRole = 'student',
+  activeVehicleCount = 0,
+  activeRouteCount = 0,
+  campusStops = [],
 }) {
   const [selectedRole, setSelectedRole] = useState(initialRole); // 'student' | 'operator'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  
+
   // Validation errors
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,7 +122,7 @@ export default function Login({
                 Smart campus mobility, connected in real time.
               </h1>
               <p className="auth-hero-description">
-                Access live shuttle telemetry, high-precision corridor ETAs, route schedules, 
+                Access live shuttle telemetry, high-precision corridor ETAs, route schedules,
                 and comprehensive fleet dispatch operations.
               </p>
             </div>
@@ -132,7 +134,7 @@ export default function Login({
                   <Radio size={14} className="text-cyan" />
                   <span className="visual-header-text">Active Campus Corridor</span>
                 </div>
-                <span className="visual-latency-tag">12ms Telemetry</span>
+                <span className="visual-latency-tag">Firestore live data</span>
               </div>
 
               {/* Graphic nodes representing route tracking */}
@@ -140,39 +142,39 @@ export default function Login({
                 <div className="visual-route-line" />
                 <div className="visual-stop-point point-passed">
                   <span className="visual-node-dot" />
-                  <span className="visual-node-label">Hostel</span>
+                  <span className="visual-node-label">{campusStops[0]?.name || 'Campus Stop'}</span>
                 </div>
                 <div className="visual-stop-point point-active">
                   <span className="visual-node-shuttle-pulse">
                     <Navigation size={12} className="visual-nav-icon" />
                   </span>
-                  <span className="visual-node-label text-cyan">Shuttle 01</span>
+                  <span className="visual-node-label text-cyan">Live Fleet</span>
                 </div>
                 <div className="visual-stop-point point-upcoming">
                   <span className="visual-node-dot" />
-                  <span className="visual-node-label">Main Gate</span>
+                  <span className="visual-node-label">{campusStops[1]?.name || 'Campus Stop'}</span>
                 </div>
                 <div className="visual-stop-point point-upcoming">
                   <span className="visual-node-dot" />
-                  <span className="visual-node-label">College</span>
+                  <span className="visual-node-label">{campusStops[2]?.name || 'Campus Stop'}</span>
                 </div>
               </div>
 
               {/* Quick telematics summary pills */}
               <div className="visual-metrics-row">
                 <div className="v-metric-item">
-                  <span className="v-metric-num">4</span>
-                  <span className="v-metric-lbl">Fleet Active</span>
+                  <span className="v-metric-num">{activeVehicleCount}</span>
+                  <span className="v-metric-lbl">Vehicles</span>
                 </div>
                 <div className="v-metric-divider" />
                 <div className="v-metric-item">
-                  <span className="v-metric-num">3 min</span>
-                  <span className="v-metric-lbl">Next Arrival</span>
+                  <span className="v-metric-num">{activeRouteCount}</span>
+                  <span className="v-metric-lbl">Active Routes</span>
                 </div>
                 <div className="v-metric-divider" />
                 <div className="v-metric-item">
-                  <span className="v-metric-num">100%</span>
-                  <span className="v-metric-lbl">GPS Coverage</span>
+                  <span className="v-metric-num">{campusStops.length}</span>
+                  <span className="v-metric-lbl">Campus Stops</span>
                 </div>
               </div>
             </div>
@@ -325,7 +327,7 @@ export default function Login({
               {forgotPasswordNotice && (
                 <div className="auth-notice-toast">
                   <CheckCircle2 size={14} className="text-emerald" />
-                  <span>Password recovery link will be sent to your university email once backend auth is connected.</span>
+                  <span>Password recovery is unavailable in this demo until authentication is configured.</span>
                   <button type="button" className="close-notice-btn" onClick={() => setForgotPasswordNotice(false)}>×</button>
                 </div>
               )}
@@ -374,10 +376,10 @@ export default function Login({
                   <Sparkles size={12} />
                   <span>DEMO MODE</span>
                 </div>
-                <span className="demo-disclaimer">Backend disconnected</span>
+                <span className="demo-disclaimer">Demo role access</span>
               </div>
               <p className="demo-description">
-                1-click access to test the {selectedRole === 'operator' ? 'Fleet Operator' : 'Student'} experience with live mock telematics:
+                1-click access to test the {selectedRole === 'operator' ? 'Fleet Operator' : 'Student'} experience with live Firestore transit data:
               </p>
               <button
                 type="button"

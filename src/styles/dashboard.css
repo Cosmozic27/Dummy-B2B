@@ -4899,3 +4899,330 @@
     margin-left: auto;
   }
 }
+
+
+/* Firestore-backed dashboard additions */
+.firestore-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1600px;
+  margin: 0.75rem auto 0;
+  padding: 0.75rem 1rem;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+
+.firestore-status-banner button {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.data-loading-state {
+  min-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.data-loading-state h1 {
+  color: var(--text-heading);
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+}
+
+.data-loading-state p,
+.profile-data-note,
+.route-form-note,
+.vehicle-delay-controls small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.profile-data-card,
+.route-management-card {
+  padding: 1.15rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.profile-data-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.profile-data-row > div:nth-child(2) {
+  flex: 1 1 200px;
+}
+
+.profile-data-row h3 {
+  color: var(--text-heading);
+  font-size: 1rem;
+}
+
+.profile-data-row > div:nth-child(2) span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.profile-pass-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-full);
+  color: #34d399;
+  font-size: 0.68rem;
+}
+
+.profile-data-note {
+  margin-top: 1rem;
+  line-height: 1.6;
+}
+
+.crowding-pill {
+  display: inline-flex;
+  max-width: 140px;
+  padding: 0.28rem 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-delay-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(9, 13, 22, 0.45);
+}
+
+.vehicle-delay-controls > label,
+.route-form-field > span,
+.route-color-field > span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.vehicle-delay-actions {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 0.55rem;
+}
+
+.vehicle-delay-actions select,
+.route-form-field input,
+.route-form-field select {
+  min-width: 0;
+  width: 100%;
+  padding: 0.56rem 0.65rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: #0b1220;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.delay-set-button,
+.delay-clear-button,
+.route-add-stop-button,
+.route-save-button {
+  padding: 0.58rem 0.7rem;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(6, 182, 212, 0.12);
+  color: var(--accent-cyan-light);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.delay-clear-button {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
+.route-management-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.route-management-heading,
+.route-form-footer,
+.route-color-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.route-management-heading > svg {
+  color: var(--accent-cyan-light);
+}
+
+.route-management-heading h3 {
+  color: var(--text-heading);
+  font-size: 1rem;
+}
+
+.route-management-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.route-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.route-stop-adder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.route-add-stop-button:disabled,
+.route-save-button:disabled,
+.vehicle-delay-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ordered-route-stops {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ordered-route-stops li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.route-stop-order {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 1.35rem;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-cyan-light);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.route-stop-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 0.73rem;
+}
+
+.ordered-route-stops li button {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.ordered-route-stops li button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.route-form-footer {
+  padding-top: 0.15rem;
+}
+
+.route-color-field input {
+  width: 2.5rem;
+  height: 2rem;
+  padding: 0.15rem;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: #0b1220;
+}
+
+.route-form-message {
+  color: #6ee7b7;
+  font-size: 0.72rem;
+}
+
+.route-form-note {
+  line-height: 1.5;
+}
+
+.route-empty-note {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.map-empty-state {
+  min-height: 380px;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.route-visual-stop-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (max-width: 768px) {
+  .firestore-status-banner {
+    margin-inline: 0.75rem;
+    align-items: flex-start;
+    font-size: 0.72rem;
+  }
+
+  .vehicle-delay-actions {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .route-management-card {
+    padding: 0.9rem;
+  }
+}

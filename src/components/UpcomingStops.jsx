@@ -1,12 +1,12 @@
 import React from 'react';
-import { CheckCircle2, Clock, MapPin, Navigation, Compass, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Navigation, AlertCircle } from 'lucide-react';
 
 /**
  * Individual Stop item card
  */
-export function StopCard({ stop, index, isCurrent, isPassed, isLast, isSelected, onSelectStop }) {
+export function StopCard({ stop, isCurrent, isPassed, isLast, isSelected, onSelectStop }) {
   return (
-    <div 
+    <div
       className={`stop-card-item ${isCurrent ? 'stop-card-current' : ''} ${isPassed ? 'stop-card-passed' : ''} ${isSelected ? 'stop-card-selected' : ''}`}
       onClick={() => onSelectStop && onSelectStop(stop)}
       onKeyDown={(event) => {
@@ -97,7 +97,6 @@ export default function UpcomingStops({ selectedShuttle, onSelectStop, selectedS
             <StopCard
               key={stop.id || index}
               stop={stop}
-              index={index}
               isCurrent={isCurrent}
               isPassed={isPassed}
               isLast={isLast}
