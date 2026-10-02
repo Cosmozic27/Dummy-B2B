@@ -29,7 +29,6 @@ export default function OperatorDashboard({
   onStopTrip,
   onSetDelay,
   onClearDelay,
-  onCreateRoute,
   onSwitchToStudent,
   lastUpdated = 'Just now',
 }) {
@@ -37,12 +36,6 @@ export default function OperatorDashboard({
   const [routeSelection, setRouteSelection] = useState(null);
   const [simulationSpeed, setSimulationSpeed] = useState(20);
   const [delayMinutes, setDelayMinutes] = useState(5);
-  const [routeName, setRouteName] = useState('');
-  const [orderedStopIds, setOrderedStopIds] = useState([]);
-  const [routeColor, setRouteColor] = useState('#06b6d4');
-  const [stopToAdd, setStopToAdd] = useState('');
-  const [routeSaving, setRouteSaving] = useState(false);
-  const [routeMessage, setRouteMessage] = useState('');
 
   const selectedShuttle = shuttles.find((shuttle) => shuttle.id === selectedShuttleId) || shuttles[0] || null;
   const activeRoutes = routes.filter((route) => route.active !== false);
@@ -56,50 +49,12 @@ export default function OperatorDashboard({
   const tripIsActive = Boolean(selectedShuttle?.isMoving);
   const routeStops = selectedShuttle?.stops || [];
   const routeProgressPercent = selectedShuttle?.trip?.progressPercent || 0;
-  const availableStops = campusStops.filter((stop) => !orderedStopIds.includes(stop.id));
 
   const handleTrackVehicle = (shuttle) => {
     if (shuttle?.id) onSelectShuttle?.(shuttle);
     setFocusTrigger((previous) => previous + 1);
     const mapElement = document.querySelector('.operator-map-container');
     if (mapElement && window.innerWidth < 1024) mapElement.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleAddStop = () => {
-    if (!stopToAdd || orderedStopIds.includes(stopToAdd)) return;
-    setOrderedStopIds((current) => [...current, stopToAdd]);
-    setStopToAdd('');
-  };
-
-  const handleMoveStop = (index, offset) => {
-    setOrderedStopIds((current) => {
-      const destination = index + offset;
-      if (destination < 0 || destination >= current.length) return current;
-      const next = [...current];
-      [next[index], next[destination]] = [next[destination], next[index]];
-      return next;
-    });
-  };
-
-  const handleSaveRoute = async (event) => {
-    event.preventDefault();
-    if (!routeName.trim() || orderedStopIds.length < 2) {
-      setRouteMessage('Add a route name and at least two stops in order.');
-      return;
-    }
-
-    setRouteSaving(true);
-    setRouteMessage('');
-    try {
-      const result = await onCreateRoute?.({ name: routeName, stopIds: orderedStopIds, color: routeColor });
-      if (result === false) return;
-      setRouteMessage('Route saved to Firestore.');
-      setRouteName('');
-      setOrderedStopIds([]);
-      setStopToAdd('');
-    } finally {
-      setRouteSaving(false);
-    }
   };
 
   return (
@@ -288,41 +243,6 @@ export default function OperatorDashboard({
               })}
               {routeStops.length === 0 && <span className="route-empty-note">No route assigned</span>}
             </div>
-          </section>
-
-          <section className="route-management-card" aria-labelledby="create-route-title">
-            <div className="route-management-heading"><div><span className="trip-control-kicker">FIRESTORE ROUTES</span><h3 id="create-route-title">Create a Route</h3></div><Route size={18} /></div>
-            <form onSubmit={handleSaveRoute}>
-              <label className="route-form-field"><span>Route name</span><input value={routeName} onChange={(event) => setRouteName(event.target.value)} maxLength={60} placeholder="e.g. North Campus Loop" /></label>
-              <div className="route-stop-adder">
-                <label className="route-form-field"><span>Add existing stop</span>
-                  <select value={stopToAdd} onChange={(event) => setStopToAdd(event.target.value)}>
-                    <option value="">Choose a stop</option>
-                    {availableStops.map((stop) => <option key={stop.id} value={stop.id}>{stop.name}</option>)}
-                  </select>
-                </label>
-                <button type="button" className="route-add-stop-button" onClick={handleAddStop} disabled={!stopToAdd}>Add</button>
-              </div>
-              <ol className="ordered-route-stops">
-                {orderedStopIds.map((stopId, index) => {
-                  const stop = campusStops.find((item) => item.id === stopId);
-                  return (
-                    <li key={stopId}>
-                      <span className="route-stop-order">{index + 1}</span><span className="route-stop-name">{stop?.name || stopId}</span>
-                      <button type="button" onClick={() => handleMoveStop(index, -1)} disabled={index === 0} aria-label={`Move ${stop?.name || 'stop'} earlier`}>↑</button>
-                      <button type="button" onClick={() => handleMoveStop(index, 1)} disabled={index === orderedStopIds.length - 1} aria-label={`Move ${stop?.name || 'stop'} later`}>↓</button>
-                      <button type="button" onClick={() => setOrderedStopIds((current) => current.filter((id) => id !== stopId))} aria-label={`Remove ${stop?.name || 'stop'}`}>×</button>
-                    </li>
-                  );
-                })}
-              </ol>
-              <div className="route-form-footer">
-                <label className="route-color-field"><span>Line color</span><input type="color" value={routeColor} onChange={(event) => setRouteColor(event.target.value)} aria-label="Choose route color" /></label>
-                <button type="submit" className="route-save-button" disabled={routeSaving || !routeName.trim() || orderedStopIds.length < 2}>{routeSaving ? 'Saving…' : 'Save Route'}</button>
-              </div>
-              {routeMessage && <p className="route-form-message" role="status">{routeMessage}</p>}
-              <p className="route-form-note">Saves only the existing route fields: name, ordered stopIds, color, and active.</p>
-            </form>
           </section>
 
           <AttentionPanel shuttles={shuttles} />

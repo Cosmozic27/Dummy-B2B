@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  createRoute as createRouteDocument,
   subscribeTransitCollections,
   updateVehicle,
 } from '../services/firestoreTransit.js';
@@ -148,12 +147,6 @@ export function TransitProvider({ children }) {
     setError('');
   }, []);
 
-  const createRoute = useCallback(async (route) => {
-    const documentRef = await createRouteDocument(route);
-    setError('');
-    return documentRef.id;
-  }, []);
-
   const value = useMemo(() => ({
     vehicles,
     routes,
@@ -165,9 +158,8 @@ export function TransitProvider({ children }) {
     stopTrip,
     setVehicleDelay,
     clearVehicleDelay,
-    createRoute,
     isSimulationOwner: (vehicleId) => simulationOwners.has(vehicleId),
-  }), [vehicles, routes, stops, loadedCollections, error, startTrip, stopTrip, setVehicleDelay, clearVehicleDelay, createRoute, simulationOwners]);
+  }), [vehicles, routes, stops, loadedCollections, error, startTrip, stopTrip, setVehicleDelay, clearVehicleDelay, simulationOwners]);
 
   return <TransitContext.Provider value={value}>{children}</TransitContext.Provider>;
 }

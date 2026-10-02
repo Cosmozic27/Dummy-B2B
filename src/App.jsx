@@ -12,7 +12,7 @@ import OperatorDashboard from './components/OperatorDashboard.jsx';
 import StopArrivalsPanel from './components/StopArrivalsPanel.jsx';
 import { TransitProvider } from './context/TransitContext.jsx';
 import { useTransit } from './context/useTransit.js';
-import { toCampusStopView, toShuttleView } from './services/transitViewModel.js';
+import { isVehicleActive, toCampusStopView, toShuttleView } from './services/transitViewModel.js';
 import './styles/dashboard.css';
 
 function timestampMillis(value) {
@@ -42,7 +42,6 @@ function DashboardApp() {
     stopTrip,
     setVehicleDelay,
     clearVehicleDelay,
-    createRoute,
   } = useTransit();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -107,7 +106,6 @@ function DashboardApp() {
     () => setVehicleDelay(vehicleId, minutes),
   );
   const handleClearDelay = (vehicleId) => runOperatorAction(() => clearVehicleDelay(vehicleId));
-  const handleCreateRoute = (route) => runOperatorAction(() => createRoute(route));
 
   const handleOpenShuttleDetails = (shuttle) => {
     if (shuttle?.id) setSelectedShuttleId(shuttle.id);
@@ -141,7 +139,7 @@ function DashboardApp() {
     return <Login
       onLoginSuccess={handleLoginSuccess}
       initialRole="student"
-      activeVehicleCount={vehicles.filter((vehicle) => String(vehicle.status || '').toLowerCase() !== 'inactive').length}
+      activeVehicleCount={vehicles.filter(isVehicleActive).length}
       activeRouteCount={routes.filter((route) => route.active !== false).length}
       campusStops={campusStops}
     />;
@@ -181,7 +179,6 @@ function DashboardApp() {
             onStopTrip={handleStopTrip}
             onSetDelay={handleMarkDelayed}
             onClearDelay={handleClearDelay}
-            onCreateRoute={handleCreateRoute}
             onSwitchToStudent={() => handleToggleMode('student')}
             lastUpdated={lastUpdated}
           />
@@ -208,7 +205,7 @@ function DashboardApp() {
                 <main>
                   <MainHeader
                     lastUpdated={lastUpdated}
-                    activeCount={vehicles.filter((vehicle) => String(vehicle.status).toLowerCase() === 'active').length}
+                    activeCount={vehicles.filter(isVehicleActive).length}
                     routeCount={routes.filter((route) => route.active !== false).length}
                   />
 

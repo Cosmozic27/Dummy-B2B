@@ -1,6 +1,13 @@
 import { formatEta, getEta } from '../lib/eta.js';
 import { distanceKm, getRouteProgressPercent, getRouteStops } from './transitSimulation.js';
 
+export function isVehicleActive(vehicle) {
+  const status = String(vehicle?.status || '').replace(/[_-]/g, ' ').toUpperCase();
+  return Boolean(vehicle?.delayed || vehicle?.isDelayed)
+    || Number(vehicle?.speed) > 0
+    || ['ACTIVE', 'ON ROUTE', 'DELAYED'].includes(status);
+}
+
 function etaLabel(vehicle, stop, route, allStops, isMoving) {
   if (!isMoving || !stop || !route) return 'No ETA';
   try {

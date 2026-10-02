@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   onSnapshot,
@@ -62,19 +61,5 @@ export async function updateVehicle(vehicleId, changes) {
   await updateDoc(doc(db, TRANSIT_COLLECTIONS.vehicles, vehicleId), {
     ...Object.fromEntries(entries),
     updatedAt: serverTimestamp(),
-  });
-}
-
-export async function createRoute({ name, stopIds, color }) {
-  const cleanName = String(name ?? '').trim();
-  const cleanStopIds = [...new Set((stopIds ?? []).filter(Boolean))];
-  if (!cleanName) throw new Error('Enter a route name.');
-  if (cleanStopIds.length < 2) throw new Error('Choose at least two ordered stops.');
-
-  return addDoc(collection(db, TRANSIT_COLLECTIONS.routes), {
-    name: cleanName,
-    stopIds: cleanStopIds,
-    color: color || '#06b6d4',
-    active: true,
   });
 }

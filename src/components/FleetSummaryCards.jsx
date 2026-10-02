@@ -1,7 +1,8 @@
 import { AlertTriangle, Bus, Layers, Navigation, Radio } from 'lucide-react';
+import { isVehicleActive } from '../services/transitViewModel.js';
 
 export default function FleetSummaryCards({ shuttles = [] }) {
-  const activeCount = shuttles.filter((shuttle) => !['INACTIVE', 'RETIRED'].includes(shuttle.status?.toUpperCase())).length;
+  const activeCount = shuttles.filter(isVehicleActive).length;
   const onRouteCount = shuttles.filter((shuttle) => shuttle.isMoving).length;
   const delayedCount = shuttles.filter((shuttle) => shuttle.isDelayed).length;
   const crowdingReports = shuttles.filter((shuttle) => shuttle.crowding && shuttle.crowding !== 'Not reported').length;
